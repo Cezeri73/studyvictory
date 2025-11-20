@@ -396,85 +396,36 @@ class _FocusScreenState extends State<FocusScreen> {
       // Eğer zaten çalışıyorsa, bir şey yapma
       if (_isRunning) return;
       
-      // Serbest timer modunda: Eğer durdurulmuş timer varsa (_elapsed > 0), kaldığı yerden devam et
-      if (!_isPomodoroMode && _elapsed.inSeconds > 0) {
-        // Kaldığı yerden devam et - _elapsed değerini koru
-        setState(() {
-          _isRunning = true;
-        });
-        
-        _timer?.cancel();
-        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (!mounted) {
-            timer.cancel();
-            return;
-          }
-          setState(() {
-            _elapsed = Duration(seconds: _elapsed.inSeconds + 1);
-          });
-        });
-        return;
-      }
+      // Eğer durdurulmuş timer varsa (_elapsed > 0 veya Pomodoro değerleri sıfır değilse), kaldığı yerden devam et
+      final hasResumeValue = !_isPomodoroMode && _elapsed.inSeconds > 0;
+      final hasPomodoroResumeValue = _isPomodoroMode && (_pomodoroMinutes > 0 || _pomodoroSeconds > 0);
       
-      // Pomodoro modunda: Eğer durdurulmuş timer varsa, kaldığı yerden devam et
-      if (_isPomodoroMode && !_isRunning && (_pomodoroMinutes > 0 || _pomodoroSeconds > 0)) {
-        // Kaldığı yerden devam et - Pomodoro değerlerini koru
-        setState(() {
-          _isRunning = true;
-        });
-        
-        _timer?.cancel();
-        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (!mounted) {
-            timer.cancel();
-            return;
-          }
-          
+      if (!hasResumeValue && !hasPomodoroResumeValue) {
+        // Yeni timer başlat (sıfırdan)
+        if (_isPomodoroMode) {
+          final prefs = await SharedPreferences.getInstance();
           setState(() {
-            if (_pomodoroSeconds > 0) {
-              _pomodoroSeconds--;
+            if (_isBreakTime) {
+              _pomodoroMinutes = _breakMinutes;
             } else {
-              if (_pomodoroMinutes > 0) {
-                _pomodoroMinutes--;
-                _pomodoroSeconds = 59;
-              } else {
-                // Pomodoro bitti
-                timer.cancel();
-                _onPomodoroComplete();
-                return;
-              }
+              _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
             }
-            _elapsed = Duration(seconds: _elapsed.inSeconds + 1);
+            _pomodoroSeconds = 0;
+            _elapsed = Duration.zero;
           });
-        });
-        return;
-      }
-      
-      // Yeni timer başlat (sıfırdan)
-      if (_isPomodoroMode && !_isRunning) {
-        // Pomodoro modunda başlat
-        final prefs = await SharedPreferences.getInstance();
-        setState(() {
-          if (_isBreakTime) {
-            _pomodoroMinutes = _breakMinutes;
-          } else {
-            _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
-          }
-          _pomodoroSeconds = 0;
-          _elapsed = Duration.zero;
-        });
-      } else if (!_isPomodoroMode) {
-        // Serbest timer modunda sıfırdan başlat (sadece _elapsed == 0 ise)
-        if (_elapsed.inSeconds == 0) {
+        } else {
           setState(() {
             _elapsed = Duration.zero;
           });
         }
       }
       
+      // Timer'ı başlat (kaldığı yerden veya sıfırdan)
       setState(() {
         _isRunning = true;
-        _startTime = DateTime.now();
+        if (_elapsed.inSeconds == 0) {
+          _startTime = DateTime.now();
+        }
       });
       
       _timer?.cancel();

@@ -396,7 +396,7 @@ class _FocusScreenState extends State<FocusScreen> {
       // Eğer zaten çalışıyorsa, bir şey yapma
       if (_isRunning) return;
       
-      // Serbest timer modunda: Durdurulmuş timer varsa kaldığı yerden devam et
+      // Serbest timer modunda: Eğer durdurulmuş timer varsa (_elapsed > 0), kaldığı yerden devam et
       if (!_isPomodoroMode && _elapsed.inSeconds > 0) {
         // Kaldığı yerden devam et - _elapsed değerini koru
         setState(() {
@@ -416,8 +416,8 @@ class _FocusScreenState extends State<FocusScreen> {
         return;
       }
       
-      // Pomodoro modunda: Durdurulmuş timer varsa kaldığı yerden devam et
-      if (_isPomodoroMode && (_pomodoroMinutes > 0 || _pomodoroSeconds > 0)) {
+      // Pomodoro modunda: Eğer durdurulmuş timer varsa, kaldığı yerden devam et
+      if (_isPomodoroMode && !_isRunning && (_pomodoroMinutes > 0 || _pomodoroSeconds > 0)) {
         // Kaldığı yerden devam et - Pomodoro değerlerini koru
         setState(() {
           _isRunning = true;
@@ -429,6 +429,7 @@ class _FocusScreenState extends State<FocusScreen> {
             timer.cancel();
             return;
           }
+          
           setState(() {
             if (_pomodoroSeconds > 0) {
               _pomodoroSeconds--;
@@ -449,9 +450,9 @@ class _FocusScreenState extends State<FocusScreen> {
         return;
       }
       
-      // Yeni timer başlat (sıfırdan) - sadece _elapsed == 0 ve Pomodoro da sıfır ise
-      if (_isPomodoroMode) {
-        // Pomodoro modunda yeni başlat
+      // Yeni timer başlat (sıfırdan)
+      if (_isPomodoroMode && !_isRunning) {
+        // Pomodoro modunda başlat
         final prefs = await SharedPreferences.getInstance();
         setState(() {
           if (_isBreakTime) {
@@ -461,17 +462,20 @@ class _FocusScreenState extends State<FocusScreen> {
           }
           _pomodoroSeconds = 0;
           _elapsed = Duration.zero;
-          _isRunning = true;
-          _startTime = DateTime.now();
         });
-      } else {
-        // Serbest timer modunda yeni başlat
-        setState(() {
-          _elapsed = Duration.zero;
-          _isRunning = true;
-          _startTime = DateTime.now();
-        });
+      } else if (!_isPomodoroMode) {
+        // Serbest timer modunda sıfırdan başlat (sadece _elapsed == 0 ise)
+        if (_elapsed.inSeconds == 0) {
+          setState(() {
+            _elapsed = Duration.zero;
+          });
+        }
       }
+      
+      setState(() {
+        _isRunning = true;
+        _startTime = DateTime.now();
+      });
       
       _timer?.cancel();
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {

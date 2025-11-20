@@ -1496,16 +1496,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   
                   return Container(
                     decoration: BoxDecoration(
-                      color: isUnlocked 
-                          ? (badge['color'] as Color).withOpacity(0.15)
-                          : const Color(0xFF1E1E1E),
+                      color: const Color(0xFF1E1E1E),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isUnlocked 
-                            ? (badge['color'] as Color).withOpacity(0.5)
-                            : Colors.grey.withOpacity(0.2),
-                        width: 1,
-                      ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

@@ -393,39 +393,22 @@ class _FocusScreenState extends State<FocusScreen> {
 
   Future<void> _startTimer() async {
     try {
-      // Eğer zaten çalışıyorsa, bir şey yapma
-      if (_isRunning) return;
-      
-      // Eğer durdurulmuş timer varsa (_elapsed > 0 veya Pomodoro değerleri sıfır değilse), kaldığı yerden devam et
-      final hasResumeValue = !_isPomodoroMode && _elapsed.inSeconds > 0;
-      final hasPomodoroResumeValue = _isPomodoroMode && (_pomodoroMinutes > 0 || _pomodoroSeconds > 0);
-      
-      if (!hasResumeValue && !hasPomodoroResumeValue) {
-        // Yeni timer başlat (sıfırdan)
-        if (_isPomodoroMode) {
-          final prefs = await SharedPreferences.getInstance();
-          setState(() {
-            if (_isBreakTime) {
-              _pomodoroMinutes = _breakMinutes;
-            } else {
-              _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
-            }
-            _pomodoroSeconds = 0;
-            _elapsed = Duration.zero;
-          });
-        } else {
-          setState(() {
-            _elapsed = Duration.zero;
-          });
-        }
+      if (_isPomodoroMode && !_isRunning) {
+        // Pomodoro modunda başlat
+        final prefs = await SharedPreferences.getInstance();
+        setState(() {
+          if (_isBreakTime) {
+            _pomodoroMinutes = _breakMinutes;
+          } else {
+            _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
+          }
+          _pomodoroSeconds = 0;
+        });
       }
       
-      // Timer'ı başlat (kaldığı yerden veya sıfırdan)
       setState(() {
         _isRunning = true;
-        if (_elapsed.inSeconds == 0) {
-          _startTime = DateTime.now();
-        }
+        _startTime = DateTime.now();
       });
       
       _timer?.cancel();
@@ -868,42 +851,59 @@ class _FocusScreenState extends State<FocusScreen> {
                   ),
                   const SizedBox(height: 32),
                   
-                  // Sayaç (Dairesel Progress kaldırıldı - dikkat dağıtıcıydı)
+                  // Dairesel Progress Bar ve Sayaç
                   SizedBox(
                     width: 280,
                     height: 280,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
-                        Text(
-                          displayTime,
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: _isPomodoroMode && _isBreakTime 
+                        // Progress Circle
+                        CircularProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          strokeWidth: 12,
+                          backgroundColor: const Color(0xFF1E1E1E),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _isPomodoroMode && _isBreakTime 
                                 ? const Color(0xFF2979FF)
                                 : const Color(0xFF00E676),
-                            letterSpacing: 2,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _isPomodoroMode
-                              ? (_isBreakTime ? 'Mola Zamanı 🎉' : 'Pomodoro')
-                              : (_isRunning ? 'Çalışıyor...' : 'Hazır'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                          if (_isPomodoroMode && _isRunning)
-                          Text(
-                            '${(_isBreakTime ? _breakMinutes : _pomodoroMinutes)} dakika',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
+                        // Sayaç
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              displayTime,
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                color: _isPomodoroMode && _isBreakTime 
+                                    ? const Color(0xFF2979FF)
+                                    : const Color(0xFF00E676),
+                                letterSpacing: 2,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _isPomodoroMode
+                                  ? (_isBreakTime ? 'Mola Zamanı 🎉' : 'Pomodoro')
+                                  : (_isRunning ? 'Çalışıyor...' : 'Hazır'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                              if (_isPomodoroMode && _isRunning)
+                              Text(
+                                '${(_isBreakTime ? _breakMinutes : _pomodoroMinutes)} dakika',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -1497,19 +1497,20 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   return Container(
                     decoration: BoxDecoration(
                       color: isUnlocked 
-                          ? (badge['color'] as Color).withOpacity(0.2)
+                          ? (badge['color'] as Color).withOpacity(0.15)
                           : const Color(0xFF1E1E1E),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isUnlocked 
-                            ? badge['color'] as Color
+                            ? (badge['color'] as Color).withOpacity(0.5)
                             : Colors.grey.withOpacity(0.2),
-                        width: isUnlocked ? 2 : 1,
+                        width: 1,
                       ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Rozet ikonu - yuvarlak overlay olmadan
                         Icon(
                           badge['icon'] as IconData,
                           color: isUnlocked 

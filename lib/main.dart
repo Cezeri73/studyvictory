@@ -393,7 +393,51 @@ class _FocusScreenState extends State<FocusScreen> {
 
   Future<void> _startTimer() async {
     try {
-      if (_isPomodoroMode && !_isRunning) {
+      // Eğer zaten çalışıyorsa, bir şey yapma
+      if (_isRunning) return;
+      
+      // Durdurulmuş bir timer varsa, sadece devam ettir (kaldığı yerden)
+      if (_elapsed.inSeconds > 0 || (_isPomodoroMode && (_pomodoroMinutes > 0 || _pomodoroSeconds > 0))) {
+        // Kaldığı yerden devam et
+        setState(() {
+          _isRunning = true;
+        });
+        
+        _timer?.cancel();
+        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) {
+            timer.cancel();
+            return;
+          }
+          
+          if (_isPomodoroMode) {
+            setState(() {
+              if (_pomodoroSeconds > 0) {
+                _pomodoroSeconds--;
+              } else {
+                if (_pomodoroMinutes > 0) {
+                  _pomodoroMinutes--;
+                  _pomodoroSeconds = 59;
+                } else {
+                  // Pomodoro bitti
+                  timer.cancel();
+                  _onPomodoroComplete();
+                  return;
+                }
+              }
+              _elapsed = Duration(seconds: _elapsed.inSeconds + 1);
+            });
+          } else {
+            setState(() {
+              _elapsed = Duration(seconds: _elapsed.inSeconds + 1);
+            });
+          }
+        });
+        return;
+      }
+      
+      // Yeni timer başlat (sıfırdan)
+      if (_isPomodoroMode) {
         // Pomodoro modunda başlat
         final prefs = await SharedPreferences.getInstance();
         setState(() {
@@ -403,6 +447,12 @@ class _FocusScreenState extends State<FocusScreen> {
             _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
           }
           _pomodoroSeconds = 0;
+          _elapsed = Duration.zero;
+        });
+      } else {
+        // Serbest timer modunda sıfırdan başlat
+        setState(() {
+          _elapsed = Duration.zero;
         });
       }
       

@@ -62,6 +62,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _navigateToTopics(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TopicsScreen()),
+    );
+  }
+
   void _showMenu() {
     // Menu callback
   }
@@ -121,6 +128,11 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.book, color: Colors.white),
+            onPressed: () => _navigateToTopics(context),
+            tooltip: 'Konularım',
+          ),
           IconButton(
             icon: const Icon(Icons.repeat, color: Colors.white),
             onPressed: () => _navigateToRoutines(context),
@@ -203,6 +215,8 @@ class _FocusScreenState extends State<FocusScreen> {
   bool _isBreakTime = false;
   int _breakMinutes = 5;
   String? _selectedCategory;
+  String? _selectedTopicId; // Konu seçimi
+  List<Map<String, dynamic>> _topics = []; // Konular listesi
   
   // Motivasyon
   String _motivationQuote = '';
@@ -211,6 +225,7 @@ class _FocusScreenState extends State<FocusScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _loadTopics();
     _motivationQuote = getRandomMotivationQuote();
   }
 
@@ -221,14 +236,40 @@ class _FocusScreenState extends State<FocusScreen> {
     final streak = prefs.getInt('streak') ?? 0;
     final isPomodoro = prefs.getBool('pomodoro_mode') ?? false;
     
+    // Konuları yükle
+    final topicsJson = prefs.getStringList('topics') ?? [];
+    final topics = topicsJson.map((json) => Map<String, dynamic>.from(jsonDecode(json))).toList();
+    
     setState(() {
       _totalHours = totalSeconds / 3600.0;
       _xp = xp;
       _streak = streak;
       _isPomodoroMode = isPomodoro;
+      _topics = topics;
       if (_isPomodoroMode) {
         _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
         _breakMinutes = prefs.getInt('break_minutes') ?? 5;
+      }
+    });
+  }
+
+  Future<void> _loadTopics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final topicsJson = prefs.getStringList('topics') ?? [];
+    final topics = topicsJson.map((json) => Map<String, dynamic>.from(jsonDecode(json))).toList();
+    
+    setState(() {
+      _topics = topics;
+      
+      // Kategori değiştiğinde konu seçimini temizle
+      if (_selectedCategory != null && _selectedTopicId != null) {
+        final selectedTopic = topics.firstWhere(
+          (t) => t['id'] == _selectedTopicId,
+          orElse: () => {},
+        );
+        if (selectedTopic.isEmpty || selectedTopic['category'] != _selectedCategory) {
+          _selectedTopicId = null;
+        }
       }
     });
   }
@@ -250,6 +291,105 @@ class _FocusScreenState extends State<FocusScreen> {
     await _checkBadges();
     
     await _loadData();
+  }
+
+  // Konu bazlı çalışma süresini güncelle
+  Future<void> _updateTopicStudyTime(String topicId, int seconds) async {
+    final prefs = await SharedPreferences.getInstance();
+    final topicsJson = prefs.getStringList('topics') ?? [];
+    final topics = topicsJson.map((json) => Map<String, dynamic>.from(jsonDecode(json))).toList();
+    
+    final topicIndex = topics.indexWhere((t) => t['id'] == topicId);
+    if (topicIndex != -1) {
+      final currentSeconds = topics[topicIndex]['studySeconds'] as int? ?? 0;
+      topics[topicIndex]['studySeconds'] = currentSeconds + seconds;
+      topics[topicIndex]['lastStudyDate'] = DateTime.now().toIso8601String();
+      
+      // Eğer hedef varsa ve hedefe ulaşıldıysa
+      final targetSeconds = topics[topicIndex]['targetSeconds'] as int?;
+      if (targetSeconds != null && targetSeconds > 0) {
+        final progress = (topics[topicIndex]['studySeconds'] as int) / targetSeconds;
+        if (progress >= 1.0 && !(topics[topicIndex]['goalCompleted'] as bool? ?? false)) {
+          topics[topicIndex]['goalCompleted'] = true;
+          topics[topicIndex]['goalCompletedDate'] = DateTime.now().toIso8601String();
+          
+          // Hedef tamamlama bildirimi
+          if (mounted) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              _showGoalCompletionDialog(topics[topicIndex]['name'] as String);
+            });
+          }
+        }
+      }
+      
+      final topicsJsonNew = topics.map((t) => jsonEncode(t)).toList();
+      await prefs.setStringList('topics', topicsJsonNew);
+    }
+  }
+
+  void _showGoalCompletionDialog(String topicName) {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF00E676), width: 2),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.emoji_events, color: Color(0xFFFFD700), size: 32),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text('🎉 Hedef Tamamlandı!', 
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$topicName konusundaki hedefini tamamladın!',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.star, color: Color(0xFFFFD700), size: 24),
+                  SizedBox(width: 8),
+                  Text('+100 XP Kazandın!', 
+                    style: TextStyle(color: Color(0xFF00E676), fontSize: 18, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // XP kazan
+              SharedPreferences.getInstance().then((prefs) {
+                final currentXP = prefs.getInt('xp') ?? 0;
+                prefs.setInt('xp', currentXP + 100);
+              });
+            },
+            child: const Text('Harika!', style: TextStyle(color: Color(0xFF00E676), fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _updateStreak() async {
@@ -535,7 +675,13 @@ class _FocusScreenState extends State<FocusScreen> {
         'date': DateTime.now().toIso8601String(),
         'duration': _elapsed.inSeconds,
         'category': _selectedCategory ?? 'other',
+        'topicId': _selectedTopicId, // Konu ID'si eklendi
       };
+      
+      // Konu bazlı çalışma süresini güncelle
+      if (_selectedTopicId != null) {
+        await _updateTopicStudyTime(_selectedTopicId!, _elapsed.inSeconds);
+      }
       
       sessions.insert(0, jsonEncode(sessionData));
       await prefs.setStringList('sessions', sessions);
@@ -577,6 +723,39 @@ class _FocusScreenState extends State<FocusScreen> {
     final minutes = _pomodoroMinutes.toString().padLeft(2, '0');
     final seconds = _pomodoroSeconds.toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  // Kategoriye göre konuları getir
+  List<Map<String, dynamic>> _getTopicsForCategory(String categoryId) {
+    return _topics.where((topic) {
+      return topic['category'] == categoryId && 
+             (topic['status'] != 'completed' || (topic['status'] == 'completed' && !(topic['goalCompleted'] as bool? ?? false)));
+    }).toList()
+      ..sort((a, b) {
+        // İlerlemeye göre sırala (en düşük ilerleme önce)
+        final aProgress = _getTopicProgress(a);
+        final bProgress = _getTopicProgress(b);
+        return aProgress.compareTo(bProgress);
+      });
+  }
+
+  double _getTopicProgress(Map<String, dynamic> topic) {
+    final targetSeconds = topic['targetSeconds'] as int?;
+    if (targetSeconds == null || targetSeconds == 0) {
+      final studySeconds = topic['studySeconds'] as int? ?? 0;
+      return (studySeconds / 36000.0).clamp(0.0, 1.0);
+    }
+    final studySeconds = topic['studySeconds'] as int? ?? 0;
+    return (studySeconds / targetSeconds).clamp(0.0, 1.0);
+  }
+
+  String _formatStudyTime(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    if (hours > 0) {
+      return '$hours sa ${minutes} dk';
+    }
+    return '$minutes dk';
   }
 
   @override
@@ -770,6 +949,8 @@ class _FocusScreenState extends State<FocusScreen> {
                           onTap: () {
                             setState(() {
                               _selectedCategory = category['id'] as String;
+                              _selectedTopicId = null; // Kategori değiştiğinde konu seçimini temizle
+                              _loadData(); // Konuları yeniden yükle
                             });
                           },
                           child: Container(
@@ -812,7 +993,173 @@ class _FocusScreenState extends State<FocusScreen> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  
+                  // Konu Seçimi (Eğer kategori seçildiyse ve o kategoriye ait konular varsa)
+                  if (_selectedCategory != null && _getTopicsForCategory(_selectedCategory!).isNotEmpty) ...[
+                    const Text('📚 Çalışacağın Konu', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF00E676).withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButton<String>(
+                        value: _selectedTopicId,
+                        isExpanded: true,
+                        underline: Container(),
+                        dropdownColor: const Color(0xFF1E1E1E),
+                        style: const TextStyle(color: Colors.white),
+                        hint: Text(
+                          'Konu seç (opsiyonel)',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        ),
+                        icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF00E676)),
+                        items: _getTopicsForCategory(_selectedCategory!).map((topic) {
+                          final studySeconds = topic['studySeconds'] as int? ?? 0;
+                          final targetSeconds = topic['targetSeconds'] as int? ?? 0;
+                          final progress = targetSeconds > 0 
+                              ? (studySeconds / targetSeconds).clamp(0.0, 1.0)
+                              : (studySeconds / 36000.0).clamp(0.0, 1.0);
+                          
+                          return DropdownMenuItem<String>(
+                            value: topic['id'] as String,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        topic['name'] as String,
+                                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                                      ),
+                                      if (targetSeconds > 0)
+                                        Text(
+                                          '${(progress * 100).toStringAsFixed(0)}% tamamlandı',
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (progress >= 1.0)
+                                  const Icon(Icons.check_circle, color: Color(0xFF00E676), size: 20),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedTopicId = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_selectedTopicId != null)
+                      Builder(
+                        builder: (context) {
+                          final selectedTopic = _topics.firstWhere(
+                            (t) => t['id'] == _selectedTopicId,
+                            orElse: () => {},
+                          );
+                          if (selectedTopic.isEmpty) return const SizedBox.shrink();
+                          
+                          final studySeconds = selectedTopic['studySeconds'] as int? ?? 0;
+                          final targetSeconds = selectedTopic['targetSeconds'] as int? ?? 0;
+                          
+                          if (targetSeconds > 0) {
+                            final progress = (studySeconds / targetSeconds).clamp(0.0, 1.0);
+                            final remainingSeconds = (targetSeconds - studySeconds).clamp(0, targetSeconds);
+                            
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00E676).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFF00E676).withOpacity(0.3),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Çalışılan: ${_formatStudyTime(studySeconds)}',
+                                        style: TextStyle(color: Colors.grey[300], fontSize: 12),
+                                      ),
+                                      Text(
+                                        'Hedef: ${_formatStudyTime(targetSeconds)}',
+                                        style: TextStyle(color: Colors.grey[300], fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: progress,
+                                      backgroundColor: Colors.grey[800],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        progress >= 1.0 
+                                            ? const Color(0xFF00E676)
+                                            : progress >= 0.7
+                                                ? const Color(0xFF2979FF)
+                                                : Colors.orange,
+                                      ),
+                                      minHeight: 6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${(progress * 100).toStringAsFixed(0)}% Tamamlandı • ${_formatStudyTime(remainingSeconds)} kaldı',
+                                    style: TextStyle(
+                                      color: progress >= 1.0 
+                                          ? const Color(0xFF00E676)
+                                          : Colors.grey[400],
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[900],
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, size: 16, color: Colors.grey[400]),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Çalışılan: ${_formatStudyTime(studySeconds)}',
+                                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 16),
+                  ],
                   
                   // Pomodoro Toggle
                   Row(
@@ -3857,5 +4204,957 @@ class _RoutinesScreenState extends State<RoutinesScreen> {
         ),
       ),
     );
+  }
+}
+
+// Konular Ekranı - Kişiselleştirilmiş Konu Takip Sistemi
+class TopicsScreen extends StatefulWidget {
+  const TopicsScreen({super.key});
+
+  @override
+  State<TopicsScreen> createState() => _TopicsScreenState();
+}
+
+class _TopicsScreenState extends State<TopicsScreen> {
+  List<Map<String, dynamic>> _topics = [];
+  String _searchQuery = '';
+  String _filterCategory = 'all';
+  String _filterStatus = 'all';
+  String _sortBy = 'name';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTopics();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadTopics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final topicsJson = prefs.getStringList('topics') ?? [];
+    setState(() {
+      _topics = topicsJson.map((json) => Map<String, dynamic>.from(jsonDecode(json))).toList();
+    });
+  }
+
+  Future<void> _saveTopics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final topicsJson = _topics.map((t) => jsonEncode(t)).toList();
+    await prefs.setStringList('topics', topicsJson);
+  }
+
+  List<Map<String, dynamic>> _getFilteredTopics() {
+    var filtered = _topics.where((topic) {
+      // Arama filtresi
+      if (_searchQuery.isNotEmpty) {
+        final name = (topic['name'] as String).toLowerCase();
+        final notes = (topic['notes'] as String? ?? '').toLowerCase();
+        if (!name.contains(_searchQuery) && !notes.contains(_searchQuery)) {
+          return false;
+        }
+      }
+      
+      // Kategori filtresi
+      if (_filterCategory != 'all' && topic['category'] != _filterCategory) {
+        return false;
+      }
+      
+      // Durum filtresi
+      if (_filterStatus != 'all') {
+        final status = _getTopicStatus(topic);
+        if (_filterStatus == 'not_started' && status != 'not_started') return false;
+        if (_filterStatus == 'in_progress' && status != 'in_progress') return false;
+        if (_filterStatus == 'completed' && status != 'completed') return false;
+      }
+      
+      return true;
+    }).toList();
+    
+    // Sıralama
+    filtered.sort((a, b) {
+      switch (_sortBy) {
+        case 'progress':
+          final aProgress = _getTopicProgress(a);
+          final bProgress = _getTopicProgress(b);
+          return bProgress.compareTo(aProgress);
+        case 'studyTime':
+          final aTime = a['studySeconds'] as int? ?? 0;
+          final bTime = b['studySeconds'] as int? ?? 0;
+          return bTime.compareTo(aTime);
+        case 'name':
+        default:
+          return (a['name'] as String).compareTo(b['name'] as String);
+      }
+    });
+    
+    return filtered;
+  }
+
+  String _getTopicStatus(Map<String, dynamic> topic) {
+    final studySeconds = topic['studySeconds'] as int? ?? 0;
+    if (studySeconds == 0) return 'not_started';
+    final status = topic['status'] as String? ?? 'in_progress';
+    if (status == 'completed' || (topic['goalCompleted'] as bool? ?? false)) {
+      return 'completed';
+    }
+    return 'in_progress';
+  }
+
+  double _getTopicProgress(Map<String, dynamic> topic) {
+    final targetSeconds = topic['targetSeconds'] as int?;
+    if (targetSeconds == null || targetSeconds == 0) {
+      // Hedef yoksa, çalışma süresine göre progress göster (maks 10 saat = %100)
+      final studySeconds = topic['studySeconds'] as int? ?? 0;
+      return (studySeconds / 36000.0).clamp(0.0, 1.0);
+    }
+    final studySeconds = topic['studySeconds'] as int? ?? 0;
+    return (studySeconds / targetSeconds).clamp(0.0, 1.0);
+  }
+
+  List<Map<String, dynamic>> _getWeakTopics() {
+    final filtered = _getFilteredTopics();
+    return filtered.where((topic) {
+      final progress = _getTopicProgress(topic);
+      final studySeconds = topic['studySeconds'] as int? ?? 0;
+      // En az bir kez çalışılmış ve progress %50'den az olan konular
+      return studySeconds > 0 && progress < 0.5 && _getTopicStatus(topic) != 'completed';
+    }).toList()
+      ..sort((a, b) {
+        final aProgress = _getTopicProgress(a);
+        final bProgress = _getTopicProgress(b);
+        return aProgress.compareTo(bProgress); // En düşük progress önce
+      });
+  }
+
+  List<Map<String, dynamic>> _getStrongTopics() {
+    final filtered = _getFilteredTopics();
+    return filtered.where((topic) {
+      final progress = _getTopicProgress(topic);
+      final studySeconds = topic['studySeconds'] as int? ?? 0;
+      // En az bir kez çalışılmış ve progress %70'ten fazla olan konular
+      return studySeconds > 0 && progress >= 0.7;
+    }).toList()
+      ..sort((a, b) {
+        final aProgress = _getTopicProgress(a);
+        final bProgress = _getTopicProgress(b);
+        return bProgress.compareTo(aProgress); // En yüksek progress önce
+      });
+  }
+
+  Future<void> _showAddTopicDialog({Map<String, dynamic>? topic, int? index}) async {
+    final nameController = TextEditingController(text: topic?['name'] ?? '');
+    final notesController = TextEditingController(text: topic?['notes'] ?? '');
+    
+    String selectedCategory = topic?['category'] ?? 'tyt';
+    String status = topic?['status'] ?? 'not_started';
+    int targetHours = topic?['targetHours'] ?? 0;
+    int targetMinutes = topic?['targetMinutes'] ?? 0;
+    if (topic != null && topic['targetSeconds'] != null) {
+      final targetSeconds = topic['targetSeconds'] as int;
+      targetHours = targetSeconds ~/ 3600;
+      targetMinutes = (targetSeconds % 3600) ~/ 60;
+    }
+    
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: Text(
+            topic == null ? '📚 Yeni Konu Ekle' : '✏️ Konu Düzenle',
+            style: const TextStyle(color: Colors.white, fontSize: 20),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Konu Adı
+                TextField(
+                  controller: nameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Konu Adı',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    hintText: 'Örn: TYT Kimya - Asitler ve Bazlar',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Kategori
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Kategori',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                  dropdownColor: const Color(0xFF1E1E1E),
+                  style: const TextStyle(color: Colors.white),
+                  items: categories.map((cat) {
+                    return DropdownMenuItem(
+                      value: cat['id'] as String,
+                      child: Row(
+                        children: [
+                          Icon(cat['icon'] as IconData, color: cat['color'] as Color, size: 20),
+                          const SizedBox(width: 8),
+                          Text(cat['name'] as String),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedCategory = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Durum
+                DropdownButtonFormField<String>(
+                  value: status,
+                  decoration: InputDecoration(
+                    labelText: 'Durum',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                  dropdownColor: const Color(0xFF1E1E1E),
+                  style: const TextStyle(color: Colors.white),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'not_started',
+                      child: Row(
+                        children: [
+                          Icon(Icons.circle_outlined, color: Colors.grey[400], size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Başlanmadı'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'in_progress',
+                      child: Row(
+                        children: [
+                          Icon(Icons.play_circle_outline, color: const Color(0xFF2979FF), size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Devam Ediyor'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'completed',
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle_outline, color: const Color(0xFF00E676), size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Tamamlandı'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() {
+                      status = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Hedef Süre
+                const Text('Hedef Süre (Opsiyonel)', style: TextStyle(color: Colors.white, fontSize: 14)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildNumberField(
+                        label: 'Saat',
+                        value: targetHours,
+                        max: 1000,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            targetHours = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildNumberField(
+                        label: 'Dakika',
+                        value: targetMinutes,
+                        max: 59,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            targetMinutes = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Notlar
+                TextField(
+                  controller: notesController,
+                  style: const TextStyle(color: Colors.white),
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Notlar (Opsiyonel)',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    hintText: 'Önemli bilgiler, hatırlatıcılar...',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('İptal', style: TextStyle(color: Colors.grey[400])),
+            ),
+            if (topic != null)
+              TextButton(
+                onPressed: () {
+                  _deleteTopic(index!);
+                  Navigator.pop(context);
+                },
+                child: const Text('Sil', style: TextStyle(color: Colors.red)),
+              ),
+            TextButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lütfen konu adı girin!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                final targetSeconds = (targetHours * 3600) + (targetMinutes * 60);
+                
+                final topicData = {
+                  'id': topic?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                  'name': nameController.text.trim(),
+                  'category': selectedCategory,
+                  'status': status,
+                  'targetSeconds': targetSeconds,
+                  'targetHours': targetHours,
+                  'targetMinutes': targetMinutes,
+                  'studySeconds': topic?['studySeconds'] ?? 0,
+                  'notes': notesController.text.trim(),
+                  'createdAt': topic?['createdAt'] ?? DateTime.now().toIso8601String(),
+                  'lastStudyDate': topic?['lastStudyDate'],
+                  'goalCompleted': topic?['goalCompleted'] ?? false,
+                  'goalCompletedDate': topic?['goalCompletedDate'],
+                };
+                
+                if (topic == null) {
+                  _topics.add(topicData);
+                } else {
+                  _topics[index!] = topicData;
+                }
+                
+                _saveTopics();
+                Navigator.pop(context);
+                _loadTopics();
+              },
+              child: const Text('Kaydet', style: TextStyle(color: Color(0xFF00E676))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNumberField({
+    required String label,
+    required int value,
+    required int max,
+    required Function(int) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove, color: Colors.grey),
+            onPressed: value > 0 ? () => onChanged(value - 1) : null,
+          ),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$value',
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  label,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Color(0xFF00E676)),
+            onPressed: value < max ? () => onChanged(value + 1) : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteTopic(int index) {
+    setState(() {
+      _topics.removeAt(index);
+    });
+    _saveTopics();
+  }
+
+  String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    if (hours > 0) {
+      return '$hours sa ${minutes} dk';
+    }
+    return '$minutes dk';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredTopics = _getFilteredTopics();
+    final weakTopics = _getWeakTopics();
+    final strongTopics = _getStrongTopics();
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('📚 Konularım', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF1E1E1E),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle, color: Color(0xFF00E676), size: 28),
+            onPressed: () => _showAddTopicDialog(),
+            tooltip: 'Yeni Konu',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Arama ve Filtreler
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              border: Border(bottom: BorderSide(color: Colors.grey[800]!, width: 1)),
+            ),
+            child: Column(
+              children: [
+                // Arama
+                TextField(
+                  controller: _searchController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Konu ara...',
+                    hintStyle: TextStyle(color: Colors.grey[500]),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey[900],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Filtreler
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _filterCategory,
+                        decoration: InputDecoration(
+                          labelText: 'Kategori',
+                          labelStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                          filled: true,
+                          fillColor: Colors.grey[900],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        dropdownColor: const Color(0xFF1E1E1E),
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        items: [
+                          const DropdownMenuItem(value: 'all', child: Text('Tümü')),
+                          ...categories.map((cat) => DropdownMenuItem(
+                            value: cat['id'] as String,
+                            child: Text(cat['name'] as String),
+                          )),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _filterCategory = value!;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _filterStatus,
+                        decoration: InputDecoration(
+                          labelText: 'Durum',
+                          labelStyle: TextStyle(color: Colors.grey[400], fontSize: 12),
+                          filled: true,
+                          fillColor: Colors.grey[900],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        dropdownColor: const Color(0xFF1E1E1E),
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        items: const [
+                          DropdownMenuItem(value: 'all', child: Text('Tümü')),
+                          DropdownMenuItem(value: 'not_started', child: Text('Başlanmadı')),
+                          DropdownMenuItem(value: 'in_progress', child: Text('Devam Ediyor')),
+                          DropdownMenuItem(value: 'completed', child: Text('Tamamlandı')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _filterStatus = value!;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // İçerik
+          Expanded(
+            child: _topics.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.book_outlined, size: 80, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Henüz konu eklenmedi',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 18),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Kendi konularını ekle ve takip et!',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddTopicDialog(),
+                          icon: const Icon(Icons.add),
+                          label: const Text('İlk Konuyu Ekle'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00E676),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      // Zayıf ve Güçlü Konular Özeti
+                      if (weakTopics.isNotEmpty || strongTopics.isNotEmpty) ...[
+                        Row(
+                          children: [
+                            if (weakTopics.isNotEmpty)
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.trending_down, color: Colors.red, size: 24),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${weakTopics.length}',
+                                        style: const TextStyle(color: Colors.red, fontSize: 20, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        'Zayıf Konu',
+                                        style: TextStyle(color: Colors.red[300], fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            if (weakTopics.isNotEmpty && strongTopics.isNotEmpty)
+                              const SizedBox(width: 12),
+                            if (strongTopics.isNotEmpty)
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF00E676).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFF00E676).withOpacity(0.3)),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.trending_up, color: Color(0xFF00E676), size: 24),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${strongTopics.length}',
+                                        style: const TextStyle(color: Color(0xFF00E676), fontSize: 20, fontWeight: FontWeight.bold),
+                                      ),
+                                      Text(
+                                        'Güçlü Konu',
+                                        style: TextStyle(color: Colors.green[300], fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      // Konu Listesi
+                      ...filteredTopics.map((topic) => _buildTopicCard(topic)),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopicCard(Map<String, dynamic> topic) {
+    final category = categories.firstWhere((c) => c['id'] == topic['category']);
+    final progress = _getTopicProgress(topic);
+    final status = _getTopicStatus(topic);
+    final studySeconds = topic['studySeconds'] as int? ?? 0;
+    final targetSeconds = topic['targetSeconds'] as int? ?? 0;
+    final index = _topics.indexOf(topic);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: status == 'completed' 
+              ? const Color(0xFF00E676).withOpacity(0.5)
+              : Colors.grey[800]!,
+          width: status == 'completed' ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _showAddTopicDialog(topic: topic, index: index),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: (category['color'] as Color).withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      category['icon'] as IconData,
+                      color: category['color'] as Color,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          topic['name'] as String,
+                          style: TextStyle(
+                            color: status == 'completed' ? Colors.grey[400] : Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            decoration: status == 'completed' ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: (category['color'] as Color).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                category['name'] as String,
+                                style: TextStyle(
+                                  color: category['color'] as Color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildStatusBadge(status),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuButton(
+                    icon: const Icon(Icons.more_vert, color: Colors.grey),
+                    color: const Color(0xFF1E1E1E),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        child: const Row(
+                          children: [
+                            Icon(Icons.edit, color: Color(0xFF00E676), size: 20),
+                            SizedBox(width: 8),
+                            Text('Düzenle', style: TextStyle(color: Colors.white)),
+                          ],
+                        ),
+                        onTap: () {
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            _showAddTopicDialog(topic: topic, index: index);
+                          });
+                        },
+                      ),
+                      PopupMenuItem(
+                        child: const Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red, size: 20),
+                            SizedBox(width: 8),
+                            Text('Sil', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                        onTap: () {
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            _deleteTopic(index);
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // İlerleme Çubuğu
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Çalışılan: ${_formatDuration(studySeconds)}',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      ),
+                      if (targetSeconds > 0)
+                        Text(
+                          'Hedef: ${_formatDuration(targetSeconds)}',
+                          style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: Colors.grey[800],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        progress >= 1.0 
+                            ? const Color(0xFF00E676)
+                            : progress >= 0.7
+                                ? const Color(0xFF2979FF)
+                                : progress >= 0.5
+                                    ? Colors.orange
+                                    : Colors.red,
+                      ),
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${(progress * 100).toStringAsFixed(0)}% Tamamlandı',
+                    style: TextStyle(
+                      color: progress >= 1.0 
+                          ? const Color(0xFF00E676)
+                          : Colors.grey[400],
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              if ((topic['notes'] as String?)?.isNotEmpty ?? false) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.note, size: 16, color: Colors.grey[400]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          topic['notes'] as String,
+                          style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    switch (status) {
+      case 'completed':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00E676).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Color(0xFF00E676), size: 14),
+              const SizedBox(width: 4),
+              Text(
+                'Tamamlandı',
+                style: TextStyle(color: Colors.green[300], fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        );
+      case 'in_progress':
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2979FF).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.play_circle, color: Color(0xFF2979FF), size: 14),
+              const SizedBox(width: 4),
+              Text(
+                'Devam Ediyor',
+                style: TextStyle(color: Colors.blue[300], fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        );
+      default:
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.circle, color: Colors.grey[400], size: 14),
+              const SizedBox(width: 4),
+              Text(
+                'Başlanmadı',
+                style: TextStyle(color: Colors.grey[400], fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        );
+    }
   }
 }

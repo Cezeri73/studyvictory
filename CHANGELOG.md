@@ -122,12 +122,61 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanır:
 
 ---
 
+## [1.2.0] - 2024-12-XX 🎉
+
+### ✨ Yeni Özellikler
+
+**📚 Konu Bazlı Öğrenme Takip Sistemi**
+
+#### Konu Yönetimi
+- ✅ Kişiselleştirilmiş konu ekleme (örn: "TYT Kimya - Asitler ve Bazlar")
+- ✅ Kategori bazlı konu organizasyonu (TYT/AYT/YDS/KPSS/dersler)
+- ✅ Durum yönetimi (Başlanmadı/Devam Ediyor/Tamamlandı)
+- ✅ Konu bazlı notlar ve hatırlatıcılar
+
+#### Hedef ve İlerleme Takibi
+- ✅ Konu bazlı hedef belirleme (saat/dakika)
+- ✅ Gerçek zamanlı ilerleme çubukları (% tamamlama)
+- ✅ Renkli ilerleme göstergesi:
+  - 🔴 Kırmızı: %0-50 (zayıf)
+  - 🟠 Turuncu: %50-70
+  - 🔵 Mavi: %70-99
+  - 🟢 Yeşil: %100 (tamamlandı)
+- ✅ Çalışılan süre ve hedef süre karşılaştırması
+
+#### Analiz ve Motivasyon
+- ✅ Zayıf/Güçlü konular otomatik tespiti
+- ✅ Zayıf/Güçlü konu sayısı özeti
+- ✅ Hedef tamamlama bildirimi (+100 XP)
+- ✅ Konu bazlı çalışma süresi otomatik kaydı
+
+#### FocusScreen Entegrasyonu
+- ✅ Kategori seçildiğinde konu seçimi dropdown'u
+- ✅ Konu bazlı çalışma oturumu kaydı
+- ✅ Seçili konu görsel göstergesi
+- ✅ İlerleme bilgisi ile konu seçimi
+
+### 🎨 UI İyileştirmeleri
+
+- Konularım ekranı için modern, kullanıcı dostu arayüz
+- İlerleme çubukları ile görsel takip
+- Durum rozetleri (Başlanmadı/Devam Ediyor/Tamamlandı)
+- Kategori ve durum filtreleme
+- Arama özelliği
+
+### 🐛 Hata Düzeltmeleri
+
+- Konu bazlı veri saklama optimizasyonu
+- Timer bitince konu bazlı süre kaydı düzeltmesi
+
+---
+
 ## [Gelecek Versiyonlar] 🔮
 
-### v1.2.0 (Planlanan)
+### v1.3.0 (Planlanan)
 - [ ] Karanlık/Açık tema seçeneği
 - [ ] Daha fazla rozet
-- [ ] Kategori bazlı hedefler
+- [ ] Konu bazlı istatistikler ve grafikler
 - [ ] Rutin istatistikleri ve takibi
 - [ ] Push notification desteği
 

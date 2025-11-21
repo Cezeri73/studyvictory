@@ -94,13 +94,42 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanır:
 
 ---
 
+## [1.1.0] - 2024-12-XX 🎉
+
+### ✨ Yeni Özellikler
+
+**🔄 Günlük Rutinler ve Hatırlatıcılar**
+- **Rutin Oluşturma**: Kişiselleştirilmiş günlük rutinler oluşturma
+- **Zamanlama**: Belirli saat ve günlerde rutin hatırlatıcıları
+- **Çoklu Gün Seçimi**: Haftanın farklı günlerinde tekrarlayan rutinler
+- **Hatırlatıcı Sistemi**: Rutin zamanından belirli dakika önce hatırlatma
+- **Kategori Desteği**: TYT/AYT/YDS/KPSS ve ders bazlı rutinler
+- **Aktif/Pasif Durumu**: Rutinleri aktif/pasif olarak yönetme
+- **Günlük Rutin Listesi**: Bugünkü rutinleri öncelikli gösterim
+- **Otomatik Kontrol**: Her dakika rutinleri kontrol eden sistem
+- **Hatırlatıcı Bildirimleri**: Rutin zamanı geldiğinde görsel bildirim
+
+### 🎨 UI İyileştirmeleri
+
+- Rutinler ekranı için modern, kullanıcı dostu arayüz
+- Günlük ve diğer rutinler için ayrı bölümler
+- Rutin kartlarında görsel zaman ve kategori göstergeleri
+- Ana ekrana rutinler butonu eklendi
+
+### 🐛 Hata Düzeltmeleri
+
+- Rutin sistemi için veri saklama optimizasyonu
+
+---
+
 ## [Gelecek Versiyonlar] 🔮
 
-### v1.1.0 (Planlanan)
+### v1.2.0 (Planlanan)
 - [ ] Karanlık/Açık tema seçeneği
 - [ ] Daha fazla rozet
 - [ ] Kategori bazlı hedefler
-- [ ] Bildirim sistemi iyileştirmeleri
+- [ ] Rutin istatistikleri ve takibi
+- [ ] Push notification desteği
 
 ### v1.2.0 (Planlanan)
 - [ ] Çalışma oturumları geçmişi detayları

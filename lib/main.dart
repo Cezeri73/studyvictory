@@ -55,6 +55,13 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _navigateToRoutines(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RoutinesScreen()),
+    );
+  }
+
   void _showMenu() {
     // Menu callback
   }
@@ -114,6 +121,11 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.repeat, color: Colors.white),
+            onPressed: () => _navigateToRoutines(context),
+            tooltip: 'Rutinler',
+          ),
           IconButton(
             icon: const Icon(Icons.checklist, color: Colors.white),
             onPressed: () => _navigateToTasks(context),
@@ -3158,5 +3170,692 @@ class _SettingsScreenState extends State<SettingsScreen> {
       },
     );
     return selectedValue;
+  }
+}
+
+// Rutinler Ekranı
+class RoutinesScreen extends StatefulWidget {
+  const RoutinesScreen({super.key});
+
+  @override
+  State<RoutinesScreen> createState() => _RoutinesScreenState();
+}
+
+class _RoutinesScreenState extends State<RoutinesScreen> {
+  List<Map<String, dynamic>> _routines = [];
+  Timer? _checkTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoutines();
+    // Her dakika rutinleri kontrol et
+    _checkTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      _checkRoutinesForToday();
+    });
+  }
+
+  @override
+  void dispose() {
+    _checkTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadRoutines() async {
+    final prefs = await SharedPreferences.getInstance();
+    final routinesJson = prefs.getStringList('routines') ?? [];
+    setState(() {
+      _routines = routinesJson.map((json) => Map<String, dynamic>.from(jsonDecode(json))).toList();
+    });
+    _checkRoutinesForToday();
+  }
+
+  Future<void> _saveRoutines() async {
+    final prefs = await SharedPreferences.getInstance();
+    final routinesJson = _routines.map((r) => jsonEncode(r)).toList();
+    await prefs.setStringList('routines', routinesJson);
+  }
+
+  void _checkRoutinesForToday() {
+    if (!mounted) return;
+    
+    final now = DateTime.now();
+    final currentDay = now.weekday - 1; // 0 = Pazartesi, 6 = Pazar
+    final currentTime = TimeOfDay.fromDateTime(now);
+    
+    for (var routine in _routines) {
+      if (routine['active'] as bool == false) continue;
+      
+      final days = routine['days'] as List<dynamic>;
+      if (days[currentDay] as bool != true) continue;
+      
+      final hour = routine['hour'] as int;
+      final minute = routine['minute'] as int;
+      final reminderMinutes = routine['reminderMinutes'] as int;
+      
+      // Hatırlatıcı zamanı hesapla
+      var reminderTime = TimeOfDay(hour: hour, minute: minute);
+      if (reminderMinutes > 0) {
+        var totalMinutes = hour * 60 + minute - reminderMinutes;
+        if (totalMinutes < 0) totalMinutes += 24 * 60;
+        reminderTime = TimeOfDay(hour: totalMinutes ~/ 60, minute: totalMinutes % 60);
+      }
+      
+      // Şimdi hatırlatıcı zamanı mı?
+      if (currentTime.hour == reminderTime.hour && currentTime.minute == reminderTime.minute) {
+        final routineTime = TimeOfDay(hour: hour, minute: minute);
+        final timeStr = '${routineTime.hour.toString().padLeft(2, '0')}:${routineTime.minute.toString().padLeft(2, '0')}';
+        _showRoutineReminder(routine['name'] as String, timeStr, routine['category'] as String);
+      }
+    }
+  }
+
+  void _showRoutineReminder(String name, String time, String category) {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF00E676), width: 2),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.notifications_active, color: Color(0xFF00E676), size: 32),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '⏰ Rutin Hatırlatıcısı',
+                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              name,
+              style: const TextStyle(color: Color(0xFF00E676), fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Text('Saat: $time', style: TextStyle(color: Colors.grey[300], fontSize: 14)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.label, size: 16, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Text('Kategori: $category', style: TextStyle(color: Colors.grey[300], fontSize: 14)),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tamam', style: TextStyle(color: Color(0xFF00E676))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAddRoutineDialog({Map<String, dynamic>? routine, int? index}) async {
+    final nameController = TextEditingController(text: routine?['name'] ?? '');
+    final notesController = TextEditingController(text: routine?['notes'] ?? '');
+    
+    TimeOfDay selectedTime = routine != null
+        ? TimeOfDay(hour: routine['hour'] as int, minute: routine['minute'] as int)
+        : const TimeOfDay(hour: 9, minute: 0);
+    
+    List<bool> days = routine != null
+        ? List<bool>.from(routine['days'] as List)
+        : [false, false, false, false, false, false, false];
+    
+    String selectedCategory = routine?['category'] ?? 'TYT';
+    int reminderMinutes = routine?['reminderMinutes'] ?? 15;
+    bool isActive = routine?['active'] ?? true;
+    
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: Text(
+            routine == null ? '🔄 Yeni Rutin Ekle' : '✏️ Rutin Düzenle',
+            style: const TextStyle(color: Colors.white),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'Rutin Adı',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    hintText: 'Örn: Sabah Matematik Çalışması',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Zaman Seçimi
+                ListTile(
+                  title: const Text('Zaman', style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(color: Color(0xFF00E676), fontSize: 18),
+                  ),
+                  trailing: const Icon(Icons.access_time, color: Color(0xFF00E676)),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                      builder: (context, child) {
+                        return Theme(
+                          data: ThemeData.dark().copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: Color(0xFF00E676),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    if (picked != null) {
+                      setDialogState(() {
+                        selectedTime = picked;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                // Günler
+                const Text('Tekrar Günleri', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    return FilterChip(
+                      label: Text(entry.value),
+                      selected: days[idx],
+                      onSelected: (selected) {
+                        setDialogState(() {
+                          days[idx] = selected;
+                        });
+                      },
+                      selectedColor: const Color(0xFF00E676).withOpacity(0.3),
+                      checkmarkColor: const Color(0xFF00E676),
+                      labelStyle: TextStyle(
+                        color: days[idx] ? const Color(0xFF00E676) : Colors.grey[400],
+                        fontWeight: days[idx] ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                // Kategori
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Kategori',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                  dropdownColor: const Color(0xFF1E1E1E),
+                  style: const TextStyle(color: Colors.white),
+                  items: categories.map((cat) {
+                    return DropdownMenuItem(
+                      value: cat['id'] as String,
+                      child: Text(cat['name'] as String),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedCategory = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Hatırlatıcı
+                ListTile(
+                  title: const Text('Hatırlatıcı (Dakika Önce)', style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    '$reminderMinutes dakika önce',
+                    style: const TextStyle(color: Color(0xFF00E676)),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle, color: Colors.grey),
+                        onPressed: reminderMinutes > 0
+                            ? () {
+                                setDialogState(() {
+                                  reminderMinutes -= 5;
+                                  if (reminderMinutes < 0) reminderMinutes = 0;
+                                });
+                              }
+                            : null,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle, color: Color(0xFF00E676)),
+                        onPressed: () {
+                          setDialogState(() {
+                            reminderMinutes += 5;
+                            if (reminderMinutes > 60) reminderMinutes = 60;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Notlar
+                TextField(
+                  controller: notesController,
+                  style: const TextStyle(color: Colors.white),
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: 'Notlar (Opsiyonel)',
+                    labelStyle: const TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF00E676)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Aktif/Pasif
+                SwitchListTile(
+                  title: const Text('Aktif', style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    isActive ? 'Rutin aktif' : 'Rutin pasif',
+                    style: TextStyle(color: Colors.grey[400]),
+                  ),
+                  value: isActive,
+                  activeColor: const Color(0xFF00E676),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      isActive = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('İptal', style: TextStyle(color: Colors.grey[400])),
+            ),
+            if (routine != null)
+              TextButton(
+                onPressed: () {
+                  _deleteRoutine(index!);
+                  Navigator.pop(context);
+                },
+                child: const Text('Sil', style: TextStyle(color: Colors.red)),
+              ),
+            TextButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lütfen rutin adı girin!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                if (!days.contains(true)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('En az bir gün seçin!'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                final routineData = {
+                  'id': routine?['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                  'name': nameController.text.trim(),
+                  'hour': selectedTime.hour,
+                  'minute': selectedTime.minute,
+                  'days': days,
+                  'category': selectedCategory,
+                  'reminderMinutes': reminderMinutes,
+                  'notes': notesController.text.trim(),
+                  'active': isActive,
+                  'createdAt': routine?['createdAt'] ?? DateTime.now().toIso8601String(),
+                };
+                
+                if (routine == null) {
+                  _routines.add(routineData);
+                } else {
+                  _routines[index!] = routineData;
+                }
+                
+                _saveRoutines();
+                Navigator.pop(context);
+                _loadRoutines();
+              },
+              child: const Text('Kaydet', style: TextStyle(color: Color(0xFF00E676))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _deleteRoutine(int index) {
+    setState(() {
+      _routines.removeAt(index);
+    });
+    _saveRoutines();
+  }
+
+  void _toggleRoutine(int index) {
+    setState(() {
+      _routines[index]['active'] = !(_routines[index]['active'] as bool);
+    });
+    _saveRoutines();
+  }
+
+  String _getDaysText(List<dynamic> days) {
+    final dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+    final selectedDays = <String>[];
+    for (int i = 0; i < days.length; i++) {
+      if (days[i] as bool) {
+        selectedDays.add(dayNames[i]);
+      }
+    }
+    if (selectedDays.isEmpty) return 'Gün yok';
+    if (selectedDays.length == 7) return 'Her gün';
+    if (selectedDays.length == 5 && !selectedDays.contains('Cmt') && !selectedDays.contains('Paz')) {
+      return 'Hafta içi';
+    }
+    if (selectedDays.length == 2 && selectedDays.contains('Cmt') && selectedDays.contains('Paz')) {
+      return 'Hafta sonu';
+    }
+    return selectedDays.join(', ');
+  }
+
+  List<Map<String, dynamic>> _getTodayRoutines() {
+    final now = DateTime.now();
+    final currentDay = now.weekday - 1;
+    
+    return _routines.where((routine) {
+      if (routine['active'] as bool != true) return false;
+      final days = routine['days'] as List<dynamic>;
+      return days[currentDay] as bool == true;
+    }).toList()
+      ..sort((a, b) {
+        final aHour = a['hour'] as int;
+        final aMinute = a['minute'] as int;
+        final bHour = b['hour'] as int;
+        final bMinute = b['minute'] as int;
+        final aTime = aHour * 60 + aMinute;
+        final bTime = bHour * 60 + bMinute;
+        return aTime.compareTo(bTime);
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final todayRoutines = _getTodayRoutines();
+    final otherRoutines = _routines.where((r) => !todayRoutines.contains(r)).toList();
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('🔄 Günlük Rutinlerim', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF1E1E1E),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle, color: Color(0xFF00E676), size: 28),
+            onPressed: () => _showAddRoutineDialog(),
+            tooltip: 'Yeni Rutin',
+          ),
+        ],
+      ),
+      body: _routines.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.repeat, size: 80, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Henüz rutin eklenmedi',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Düzenli çalışma alışkanlığı kazan!',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddRoutineDialog(),
+                    icon: const Icon(Icons.add),
+                    label: const Text('İlk Rutinini Ekle'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00E676),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                if (todayRoutines.isNotEmpty) ...[
+                  const Text(
+                    '📅 Bugünün Rutinleri',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ...todayRoutines.asMap().entries.map((entry) {
+                    final index = _routines.indexOf(entry.value);
+                    return _buildRoutineCard(entry.value, index);
+                  }),
+                  const SizedBox(height: 24),
+                ],
+                if (otherRoutines.isNotEmpty) ...[
+                  const Text(
+                    '📋 Diğer Rutinler',
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  ...otherRoutines.asMap().entries.map((entry) {
+                    final index = _routines.indexOf(entry.value);
+                    return _buildRoutineCard(entry.value, index);
+                  }),
+                ],
+              ],
+            ),
+    );
+  }
+
+  Widget _buildRoutineCard(Map<String, dynamic> routine, int index) {
+    final hour = routine['hour'] as int;
+    final minute = routine['minute'] as int;
+    final timeStr = '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    final isActive = routine['active'] as bool;
+    final reminderMinutes = routine['reminderMinutes'] as int;
+    final category = categories.firstWhere((c) => c['id'] == routine['category']);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isActive ? const Color(0xFF00E676).withOpacity(0.3) : Colors.grey[800]!,
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: (category['color'] as Color).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                category['icon'] as IconData,
+                color: category['color'] as Color,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                timeStr,
+                style: TextStyle(
+                  color: category['color'] as Color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        title: Text(
+          routine['name'] as String,
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.grey[500],
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            decoration: isActive ? null : TextDecoration.lineThrough,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.repeat, size: 14, color: Colors.grey[400]),
+                const SizedBox(width: 4),
+                Text(
+                  _getDaysText(routine['days'] as List),
+                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                ),
+              ],
+            ),
+            if (reminderMinutes > 0) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.notifications_active, size: 14, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '$reminderMinutes dk önce hatırlat',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+            if ((routine['notes'] as String?)?.isNotEmpty ?? false) ...[
+              const SizedBox(height: 4),
+              Text(
+                routine['notes'] as String,
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: isActive,
+              activeColor: const Color(0xFF00E676),
+              onChanged: (value) => _toggleRoutine(index),
+            ),
+            PopupMenuButton(
+              icon: const Icon(Icons.more_vert, color: Colors.grey),
+              color: const Color(0xFF1E1E1E),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  child: const Row(
+                    children: [
+                      Icon(Icons.edit, color: Color(0xFF00E676), size: 20),
+                      SizedBox(width: 8),
+                      Text('Düzenle', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                  onTap: () {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      _showAddRoutineDialog(routine: routine, index: index);
+                    });
+                  },
+                ),
+                PopupMenuItem(
+                  child: const Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Sil', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                  onTap: () {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      _deleteRoutine(index);
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

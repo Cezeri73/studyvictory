@@ -129,6 +129,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<_StatsScreenState> _statsScreenKey = GlobalKey<_StatsScreenState>();
 
   void _navigateToTasks(BuildContext context) {
     Navigator.push(
@@ -169,7 +170,7 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: [
           FocusScreen(onMenuTap: _showMenu), // Odaklan Ekranı
-          const StatsScreen(), // İstatistikler Ekranı
+          StatsScreen(key: _statsScreenKey), // İstatistikler Ekranı
           const AchievementsScreen(), // Başarılarım Ekranı
           const GoalsScreen(), // Hedefler Ekranı
         ],
@@ -182,6 +183,10 @@ class _MainScreenState extends State<MainScreen> {
             setState(() {
               _selectedIndex = index;
             });
+            // İstatistikler sekmesine geçildiğinde otomatik yenile
+            if (index == 1 && _statsScreenKey.currentState != null) {
+              _statsScreenKey.currentState!.refreshData();
+            }
           }
         },
         backgroundColor: const Color(0xFF1E1E1E),
@@ -1453,16 +1458,54 @@ class StatsScreen extends StatefulWidget {
   State<StatsScreen> createState() => _StatsScreenState();
 }
 
-class _StatsScreenState extends State<StatsScreen> {
+class _StatsScreenState extends State<StatsScreen> with WidgetsBindingObserver {
   double _totalHours = 0.0;
   List<Map<String, dynamic>> _sessions = [];
   Map<String, double> _categoryStats = {};
   List<double> _weeklyHours = List.filled(7, 0.0);
+  Timer? _refreshTimer;
+  bool _isVisible = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
+    // Her 5 saniyede bir otomatik yenile
+    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_isVisible && mounted) {
+        _loadData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadData();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // İlk yüklemede didChangeDependencies çağrılır, bu yüzden sadece ilk kez yükleniyorsa yenile
+    // Otomatik yenileme timer ile yapılıyor
+  }
+
+  // Public metod: Dışarıdan çağrılabilir (sekme değiştiğinde)
+  void refreshData() {
+    if (mounted) {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {

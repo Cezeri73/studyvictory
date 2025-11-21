@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![StudyVictory](https://img.shields.io/badge/StudyVictory-1.0.0-brightgreen)
+![StudyVictory](https://img.shields.io/badge/StudyVictory-1.3.2-brightgreen)
 ![Flutter](https://img.shields.io/badge/Flutter-3.38.2-blue)
 ![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Android-green)
 
@@ -95,7 +95,7 @@
 
 Tüm versiyon değişiklikleri için [CHANGELOG.md](CHANGELOG.md) dosyasına bakın.
 
-**Mevcut Versiyon:** `v1.0.0` - İlk Sürüm 🎉
+**Mevcut Versiyon:** `v1.3.2` - Timer İyileştirmeleri ve Otomatik Yenileme 🎉
 
 Versiyonlama sistemi hakkında detaylar için [VERSIONING.md](VERSIONING.md) dosyasına bakın.
 

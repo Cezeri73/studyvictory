@@ -10,21 +10,109 @@ void main() {
   runApp(const StudyVictoryApp());
 }
 
-class StudyVictoryApp extends StatelessWidget {
+class StudyVictoryApp extends StatefulWidget {
   const StudyVictoryApp({super.key});
 
   @override
+  State<StudyVictoryApp> createState() => _StudyVictoryAppState();
+}
+
+class _StudyVictoryAppState extends State<StudyVictoryApp> {
+  ThemeMode _themeMode = ThemeMode.dark;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeModeString = prefs.getString('theme_mode') ?? 'dark';
+    setState(() {
+      switch (themeModeString) {
+        case 'light':
+          _themeMode = ThemeMode.light;
+          break;
+        case 'system':
+          _themeMode = ThemeMode.system;
+          break;
+        default:
+          _themeMode = ThemeMode.dark;
+      }
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _changeTheme(ThemeMode themeMode) async {
+    final prefs = await SharedPreferences.getInstance();
+    String themeModeString;
+    switch (themeMode) {
+      case ThemeMode.light:
+        themeModeString = 'light';
+        break;
+      case ThemeMode.system:
+        themeModeString = 'system';
+        break;
+      default:
+        themeModeString = 'dark';
+    }
+    await prefs.setString('theme_mode', themeModeString);
+    setState(() {
+      _themeMode = themeMode;
+    });
+  }
+
+  static _StudyVictoryAppState? of(BuildContext context) {
+    return context.findAncestorStateOfType<_StudyVictoryAppState>();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(color: Color(0xFF00E676)),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp(
       title: 'StudyVictory - TYT/AYT/YDS/KPSS',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
+      themeMode: _themeMode,
+      theme: ThemeData.light().copyWith(
+        scaffoldBackgroundColor: Colors.grey[50],
+        colorScheme: ColorScheme.light(
+          primary: const Color(0xFF00E676), // Neon Yeşil
+          secondary: const Color(0xFF2979FF), // Siber Mavi
+          surface: Colors.white,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+        ),
+        cardColor: Colors.white,
+        dividerColor: Colors.grey[300],
+      ),
+      darkTheme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF121212),
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF00E676), // Neon Yeşil
           secondary: Color(0xFF2979FF), // Siber Mavi
           surface: Color(0xFF1E1E1E),
         ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E1E1E),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        cardColor: const Color(0xFF1E1E1E),
+        dividerColor: Colors.grey[800],
       ),
       home: const MainScreen(),
     );
@@ -3330,6 +3418,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _breakMinutes = 5;
   bool _enableSounds = true;
   bool _enableNotifications = true;
+  ThemeMode _currentThemeMode = ThemeMode.dark;
 
   @override
   void initState() {
@@ -3339,12 +3428,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    final themeModeString = prefs.getString('theme_mode') ?? 'dark';
+    
     setState(() {
       _pomodoroMinutes = prefs.getInt('pomodoro_minutes') ?? 25;
       _breakMinutes = prefs.getInt('break_minutes') ?? 5;
       _enableSounds = prefs.getBool('enable_sounds') ?? true;
       _enableNotifications = prefs.getBool('enable_notifications') ?? true;
+      
+      switch (themeModeString) {
+        case 'light':
+          _currentThemeMode = ThemeMode.light;
+          break;
+        case 'system':
+          _currentThemeMode = ThemeMode.system;
+          break;
+        default:
+          _currentThemeMode = ThemeMode.dark;
+      }
     });
+  }
+
+  Future<void> _changeTheme(ThemeMode themeMode) async {
+    final prefs = await SharedPreferences.getInstance();
+    String themeModeString;
+    switch (themeMode) {
+      case ThemeMode.light:
+        themeModeString = 'light';
+        break;
+      case ThemeMode.system:
+        themeModeString = 'system';
+        break;
+      default:
+        themeModeString = 'dark';
+    }
+    await prefs.setString('theme_mode', themeModeString);
+    setState(() {
+      _currentThemeMode = themeMode;
+    });
+    
+    // Tema değişikliğini uygula
+    final appState = _StudyVictoryAppState.of(context);
+    if (appState != null) {
+      appState._changeTheme(themeMode);
+    }
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            themeMode == ThemeMode.dark 
+                ? 'Karanlık tema aktif' 
+                : themeMode == ThemeMode.light
+                    ? 'Açık tema aktif'
+                    : 'Sistem teması aktif',
+          ),
+          backgroundColor: const Color(0xFF00E676),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -3438,6 +3581,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() => _breakMinutes = result);
                 await _saveSettings();
               }
+            },
+          ),
+          const SizedBox(height: 24),
+          const Text('Görünüm', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.palette, color: Color(0xFF00E676)),
+            title: const Text('Tema', style: TextStyle(color: Colors.white)),
+            subtitle: Text(
+              _currentThemeMode == ThemeMode.dark 
+                  ? 'Karanlık' 
+                  : _currentThemeMode == ThemeMode.light
+                      ? 'Açık'
+                      : 'Sistem',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: Theme.of(context).cardColor,
+                  title: const Text('Tema Seç', style: TextStyle(color: Colors.white)),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Karanlık', style: TextStyle(color: Colors.white)),
+                        subtitle: const Text('Koyu arka plan', style: TextStyle(color: Colors.grey)),
+                        value: ThemeMode.dark,
+                        groupValue: _currentThemeMode,
+                        activeColor: const Color(0xFF00E676),
+                        onChanged: (value) {
+                          Navigator.pop(context);
+                          _changeTheme(value!);
+                        },
+                      ),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Açık', style: TextStyle(color: Colors.white)),
+                        subtitle: const Text('Açık arka plan', style: TextStyle(color: Colors.grey)),
+                        value: ThemeMode.light,
+                        groupValue: _currentThemeMode,
+                        activeColor: const Color(0xFF00E676),
+                        onChanged: (value) {
+                          Navigator.pop(context);
+                          _changeTheme(value!);
+                        },
+                      ),
+                      RadioListTile<ThemeMode>(
+                        title: const Text('Sistem', style: TextStyle(color: Colors.white)),
+                        subtitle: const Text('Cihaz temasını kullan', style: TextStyle(color: Colors.grey)),
+                        value: ThemeMode.system,
+                        groupValue: _currentThemeMode,
+                        activeColor: const Color(0xFF00E676),
+                        onChanged: (value) {
+                          Navigator.pop(context);
+                          _changeTheme(value!);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
           const SizedBox(height: 24),

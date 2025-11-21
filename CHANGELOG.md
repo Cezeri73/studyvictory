@@ -171,14 +171,38 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanır:
 
 ---
 
+## [1.3.0] - 2024-12-XX 🎉
+
+### ✨ Yeni Özellikler
+
+**🎨 Tema Değiştirme Sistemi**
+- ✅ **Karanlık Tema**: Koyu arka plan ile göz yormayan çalışma ortamı
+- ✅ **Açık Tema**: Açık arka plan ile parlak ve temiz görünüm
+- ✅ **Sistem Teması**: Cihazın tema ayarını otomatik takip eder
+- ✅ **Anlık Tema Değişimi**: Tema seçildiğinde anında uygulanır
+- ✅ **Tema Tercihini Saklama**: Seçilen tema otomatik olarak kaydedilir
+
+### 🎨 UI İyileştirmeleri
+
+- Ayarlar ekranına "Görünüm" bölümü eklendi
+- Tema seçim dialogu (Karanlık/Açık/Sistem)
+- Tema ikonu ve açıklamalar
+- Mevcut tema durumunu gösteren subtitle
+
+### 🐛 Hata Düzeltmeleri
+
+- Tema değişikliği için uygulama yeniden başlatma gerektirmiyor
+
+---
+
 ## [Gelecek Versiyonlar] 🔮
 
-### v1.3.0 (Planlanan)
-- [ ] Karanlık/Açık tema seçeneği
+### v1.4.0 (Planlanan)
 - [ ] Daha fazla rozet
 - [ ] Konu bazlı istatistikler ve grafikler
 - [ ] Rutin istatistikleri ve takibi
 - [ ] Push notification desteği
+- [ ] Özelleştirilebilir renk paletleri
 
 ### v1.2.0 (Planlanan)
 - [ ] Çalışma oturumları geçmişi detayları

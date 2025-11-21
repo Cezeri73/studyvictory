@@ -195,6 +195,39 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanır:
 
 ---
 
+## [1.3.2] - 2024-12-XX 🎉
+
+### ✨ Yeni Özellikler
+
+**🔄 Otomatik Yenileme Sistemi**
+- ✅ İstatistikler ekranında otomatik yenileme (her 5 saniyede bir)
+- ✅ Sekme değiştiğinde otomatik yenileme
+- ✅ Uygulama geri geldiğinde otomatik yenileme
+- ✅ Timer ile periyodik güncelleme
+- ✅ WidgetsBindingObserver ile lifecycle yönetimi
+
+### 🎨 UI İyileştirmeleri
+
+**⏱️ Timer Ekranı**
+- ✅ Yuvarlak progress bar kaldırıldı (CircularProgressIndicator)
+- ✅ Daha temiz ve sade görünüm
+- ✅ Sayaç font boyutu 64px'e çıkarıldı (daha okunabilir)
+- ✅ Sadece sayaç ve butonlar kaldı
+- ✅ Daha fazla alan kullanımı
+
+**📊 İstatistikler Ekranı**
+- ✅ Otomatik yenileme özelliği eklendi
+- ✅ Manuel yenileme butonu
+- ✅ Pull-to-refresh desteği
+- ✅ Performans optimizasyonu
+
+### 🐛 Hata Düzeltmeleri
+
+- Timer ekranında görsel iyileştirmeler
+- İstatistikler ekranında otomatik güncelleme sorunları düzeltildi
+
+---
+
 ## [1.3.1] - 2024-12-XX 🎉
 
 ### ✨ Yeni Özellikler

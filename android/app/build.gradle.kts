@@ -34,6 +34,14 @@ android {
         release {
             // APK için debug signing yeterli (Play Store için keystore gerekli)
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Code obfuscation and optimization
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

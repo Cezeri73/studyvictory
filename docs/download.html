@@ -158,6 +158,23 @@
             text-align: left;
             padding: 5px 0;
         }
+        .download-stats {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 230, 118, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 230, 118, 0.3);
+        }
+        .download-stats p {
+            color: #00E676;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .download-stats .stats-loading {
+            color: #888;
+            font-size: 14px;
+        }
         @media (max-width: 600px) {
             .features {
                 grid-template-columns: 1fr;
@@ -198,6 +215,9 @@
                 📦 GitHub Releases'dan İndir
             </a>
             <p class="version">Sürüm 1.3.2</p>
+            <div class="download-stats" id="downloadStats">
+                <p class="stats-loading">📊 İndirme istatistikleri yükleniyor...</p>
+            </div>
         </div>
 
         <div class="info-section">
@@ -230,5 +250,56 @@
             <a href="/studyvictory/" class="back-link">← Web Sürümüne Dön</a>
         </div>
     </div>
+
+    <script>
+        // GitHub Releases API'den indirme sayısını çek
+        async function fetchDownloadCount() {
+            try {
+                const response = await fetch('https://api.github.com/repos/Cezeri73/studyvictory/releases/latest');
+                if (!response.ok) throw new Error('API hatası');
+                
+                const data = await response.json();
+                const statsDiv = document.getElementById('downloadStats');
+                
+                // app-release.apk dosyasını bul
+                const apkAsset = data.assets.find(asset => 
+                    asset.name === 'app-release.apk' || 
+                    asset.name.includes('.apk')
+                );
+                
+                if (apkAsset) {
+                    const downloadCount = apkAsset.download_count || 0;
+                    statsDiv.innerHTML = `
+                        <p>📊 Şu ana kadar <strong style="color: #00E676;">${downloadCount.toLocaleString('tr-TR')}</strong> kişi indirdi!</p>
+                    `;
+                } else {
+                    // Eğer APK bulunamazsa, tüm asset'lerin toplamını göster
+                    const totalDownloads = data.assets.reduce((sum, asset) => sum + (asset.download_count || 0), 0);
+                    if (totalDownloads > 0) {
+                        statsDiv.innerHTML = `
+                            <p>📊 Şu ana kadar <strong style="color: #00E676;">${totalDownloads.toLocaleString('tr-TR')}</strong> indirme yapıldı!</p>
+                        `;
+                    } else {
+                        statsDiv.innerHTML = `
+                            <p class="stats-loading">📊 İndirme istatistikleri henüz mevcut değil.</p>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('İndirme sayısı alınamadı:', error);
+                const statsDiv = document.getElementById('downloadStats');
+                statsDiv.innerHTML = `
+                    <p class="stats-loading">📊 İndirme istatistikleri şu anda görüntülenemiyor.</p>
+                `;
+            }
+        }
+
+        // Sayfa yüklendiğinde istatistikleri çek
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fetchDownloadCount);
+        } else {
+            fetchDownloadCount();
+        }
+    </script>
 </body>
 </html>

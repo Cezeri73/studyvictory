@@ -8,7 +8,7 @@
 
 **TYT/AYT/YDS/KPSS adayları için motivasyon ve çalışma takip uygulaması**
 
-[🌐 Web'de Dene](https://cezeri73.github.io/studyvictory/) • [📱 APK İndir](#-indirme) • [📖 Dokümantasyon](#-özellikler)
+[🌐 Web'de Dene](https://cezeri73.github.io/studyvictory/) • [📱 APK İndir](https://cezeri73.github.io/studyvictory/download.html) • [📖 Dokümantasyon](#-özellikler)
 
 </div>
 
@@ -58,18 +58,21 @@
 1. [Web sürümüne](https://cezeri73.github.io/studyvictory/) gidin
 2. Hemen kullanmaya başlayın - kurulum gerektirmez!
 
-### Android APK İndirme
+## 📱 Android APK İndirme
 
-**🌐 Web'den İndir:**
-- [APK İndir Sayfası](https://cezeri73.github.io/studyvictory/download.html) - Tek tıkla indir!
+**🌐 Direkt İndirme:**
+- [📥 APK İndir (48.4 MB)](https://cezeri73.github.io/studyvictory/StudyVictory-v1.3.2.apk) - Tek tıkla direkt indir!
+- [📱 İndirme Sayfası](https://cezeri73.github.io/studyvictory/download.html) - Detaylı bilgi ve alternatifler
 
 **📦 GitHub Releases:**
-1. [Releases](https://github.com/cezeri73/studyvictory/releases) sayfasına gidin
-2. En son `app-release.apk` dosyasını indirin
+- [Tüm Sürümleri Gör](https://github.com/Cezeri73/studyvictory/releases) - GitHub Releases sayfasından indir
 
-**📱 Yükleme:**
-1. APK'yı Android cihazınıza yükleyin
-2. "Bilinmeyen kaynaklardan uygulama yükleme" iznini verin
+**📱 Yükleme Talimatları:**
+1. APK dosyasını indirin
+2. Android cihazınızda "Bilinmeyen kaynaklardan uygulama yükleme" iznini verin
+3. İndirilen APK dosyasına tıklayın
+4. "Yükle" butonuna tıklayın
+5. Kurulum tamamlandıktan sonra uygulamayı açın
 
 ---
 

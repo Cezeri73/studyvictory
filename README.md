@@ -91,6 +91,16 @@
 
 ---
 
+## 📝 Değişiklik Geçmişi
+
+Tüm versiyon değişiklikleri için [CHANGELOG.md](CHANGELOG.md) dosyasına bakın.
+
+**Mevcut Versiyon:** `v1.0.0` - İlk Sürüm 🎉
+
+Versiyonlama sistemi hakkında detaylar için [VERSIONING.md](VERSIONING.md) dosyasına bakın.
+
+---
+
 ## 📋 Özellikler Detayı
 
 ### Odaklan Ekranı

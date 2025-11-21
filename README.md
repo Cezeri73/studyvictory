@@ -187,10 +187,10 @@ Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
 ## 👨‍💻 Geliştirici
 
-**StudyVictory Ekibi**
+**Murat Kaynar**
 
-- 📧 Email: info@studyvictory.com
 - 🌐 Web: https://cezeri73.github.io/studyvictory/
+- 📱 GitHub: [Cezeri73/studyvictory](https://github.com/Cezeri73/studyvictory)
 
 ---
 

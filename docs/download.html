@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyVictory APK İndir</title>
+    <meta name="description" content="StudyVictory - TYT/AYT/YDS/KPSS adayları için motivasyon ve çalışma takip uygulaması. Android APK indir.">
+    <title>StudyVictory APK İndir | Android Uygulaması</title>
     <style>
         * {
             margin: 0;
@@ -19,139 +20,215 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            line-height: 1.6;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             width: 100%;
+        }
+        .header {
             text-align: center;
+            margin-bottom: 40px;
         }
         .logo {
-            font-size: 48px;
+            font-size: 64px;
             margin-bottom: 20px;
         }
         h1 {
             color: #00E676;
-            margin-bottom: 10px;
-            font-size: 32px;
+            margin-bottom: 15px;
+            font-size: 36px;
+            font-weight: 700;
         }
         .subtitle {
-            color: #888;
-            margin-bottom: 40px;
+            color: #B0B0B0;
+            margin-bottom: 10px;
             font-size: 18px;
+            font-weight: 300;
+        }
+        .description {
+            color: #888;
+            font-size: 16px;
+            margin-top: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
         }
         .download-card {
-            background: #1E1E1E;
+            background: linear-gradient(135deg, #1E1E1E 0%, #252525 100%);
             border: 2px solid #00E676;
-            border-radius: 16px;
-            padding: 40px;
+            border-radius: 20px;
+            padding: 50px 40px;
             margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 230, 118, 0.2);
         }
         .download-button {
-            display: inline-block;
+            display: block;
             background: linear-gradient(135deg, #00E676 0%, #00BCD4 100%);
             color: #000;
-            padding: 18px 40px;
+            padding: 20px 50px;
             border-radius: 12px;
             text-decoration: none;
-            font-size: 20px;
-            font-weight: bold;
-            margin: 20px 0;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 20px rgba(0, 230, 118, 0.3);
+            font-size: 22px;
+            font-weight: 700;
+            margin: 15px auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 230, 118, 0.4);
+            max-width: 400px;
         }
         .download-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 30px rgba(0, 230, 118, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 230, 118, 0.6);
         }
-        .info {
-            background: #1E1E1E;
-            border-radius: 12px;
-            padding: 20px;
+        .download-button.secondary {
+            background: linear-gradient(135deg, #2979FF 0%, #00BCD4 100%);
+            box-shadow: 0 4px 20px rgba(41, 121, 255, 0.3);
+        }
+        .download-button.secondary:hover {
+            box-shadow: 0 8px 30px rgba(41, 121, 255, 0.5);
+        }
+        .divider {
+            color: #666;
             margin: 20px 0;
-            text-align: left;
-        }
-        .info h3 {
-            color: #00E676;
-            margin-bottom: 15px;
-        }
-        .info ul {
-            list-style: none;
-            padding-left: 0;
-        }
-        .info li {
-            padding: 8px 0;
-            border-bottom: 1px solid #333;
-        }
-        .info li:last-child {
-            border-bottom: none;
-        }
-        .back-link {
-            color: #00BCD4;
-            text-decoration: none;
-            margin-top: 30px;
-            display: inline-block;
-        }
-        .back-link:hover {
-            text-decoration: underline;
+            font-size: 14px;
         }
         .version {
             color: #888;
             font-size: 14px;
-            margin-top: 20px;
+            margin-top: 25px;
+            font-weight: 500;
+        }
+        .info-section {
+            background: rgba(30, 30, 30, 0.6);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 25px 0;
+            border: 1px solid #333;
+        }
+        .info-section h3 {
+            color: #00E676;
+            margin-bottom: 15px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .info-section p {
+            color: #B0B0B0;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        .developer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #333;
+        }
+        .developer p {
+            color: #888;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        .developer-name {
+            color: #00BCD4;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .back-link {
+            color: #00BCD4;
+            text-decoration: none;
+            margin-top: 40px;
+            display: inline-block;
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+        .back-link:hover {
+            color: #00E676;
+            text-decoration: underline;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .feature-item {
+            color: #B0B0B0;
+            font-size: 14px;
+            text-align: left;
+            padding: 5px 0;
+        }
+        @media (max-width: 600px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 28px;
+            }
+            .download-button {
+                font-size: 18px;
+                padding: 18px 30px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">📱</div>
-        <h1>StudyVictory APK İndir</h1>
-        <p class="subtitle">TYT/AYT/YDS/KPSS adayları için motivasyon ve çalışma takip uygulaması</p>
+        <div class="header">
+            <div class="logo">📱</div>
+            <h1>StudyVictory</h1>
+            <p class="subtitle">Sınavlara Hazırlık Uygulaması</p>
+            <p class="description">
+                TYT, AYT, YDS ve KPSS adayları için tasarlanmış motivasyon ve çalışma takip uygulaması. 
+                Pomodoro tekniği ile odaklan, XP kazan, seviye atla ve hedeflerine ulaş!
+            </p>
+        </div>
         
         <div class="download-card">
-            <h2 style="margin-bottom: 20px; color: #00E676;">Android Uygulamasını İndir</h2>
+            <h2 style="margin-bottom: 25px; color: #00E676; font-size: 24px;">Android Uygulamasını İndir</h2>
             <a href="/studyvictory/StudyVictory-v1.3.2.apk" 
                class="download-button" 
-               download="StudyVictory-v1.3.2.apk"
-               style="margin-bottom: 10px;">
-                📥 APK İndir (48.4 MB) - Direkt İndirme
+               download="StudyVictory-v1.3.2.apk">
+                📥 APK İndir (48.4 MB)
             </a>
-            <p style="margin-top: 10px; margin-bottom: 10px; color: #888;">veya</p>
-            <a href="https://github.com/Cezeri73/studyvictory/releases" 
-               class="download-button" 
-               target="_blank"
-               style="background: linear-gradient(135deg, #2979FF 0%, #00BCD4 100%);">
+            <p class="divider">veya</p>
+            <a href="https://github.com/Cezeri73/studyvictory/releases/latest" 
+               class="download-button secondary" 
+               target="_blank">
                 📦 GitHub Releases'dan İndir
             </a>
             <p class="version">Sürüm 1.3.2</p>
         </div>
 
-        <div class="info">
-            <h3>📋 Yükleme Talimatları</h3>
-            <ul>
-                <li>1. APK dosyasını indirin</li>
-                <li>2. Android cihazınızda "Bilinmeyen kaynaklardan uygulama yükleme" iznini verin</li>
-                <li>3. İndirilen APK dosyasına tıklayın</li>
-                <li>4. "Yükle" butonuna tıklayın</li>
-                <li>5. Kurulum tamamlandıktan sonra uygulamayı açın</li>
-            </ul>
-        </div>
-
-        <div class="info">
+        <div class="info-section">
             <h3>✨ Özellikler</h3>
-            <ul>
-                <li>✅ Pomodoro Timer (25/5 dakika)</li>
-                <li>✅ Serbest Timer</li>
-                <li>✅ TYT/AYT/YDS/KPSS kategorileri</li>
-                <li>✅ XP ve Seviye Sistemi</li>
-                <li>✅ Rozetler ve Başarılar</li>
-                <li>✅ İstatistikler ve Grafikler</li>
-                <li>✅ Görev Yönetimi</li>
-                <li>✅ Hedef Belirleme</li>
-            </ul>
+            <div class="features">
+                <div class="feature-item">✅ Pomodoro Timer</div>
+                <div class="feature-item">✅ Serbest Timer</div>
+                <div class="feature-item">✅ XP ve Seviye Sistemi</div>
+                <div class="feature-item">✅ Rozetler ve Başarılar</div>
+                <div class="feature-item">✅ İstatistikler ve Grafikler</div>
+                <div class="feature-item">✅ Görev Yönetimi</div>
+                <div class="feature-item">✅ Hedef Belirleme</div>
+                <div class="feature-item">✅ Tema Değiştirme</div>
+            </div>
         </div>
 
-        <a href="/studyvictory/" class="back-link">← Web Sürümüne Dön</a>
+        <div class="info-section">
+            <h3>📋 Yükleme</h3>
+            <p>1. APK dosyasını indirin</p>
+            <p>2. Android cihazınızda "Bilinmeyen kaynaklardan uygulama yükleme" iznini verin</p>
+            <p>3. İndirilen APK dosyasına tıklayın ve kurulumu tamamlayın</p>
+        </div>
+
+        <div class="developer">
+            <p><span class="developer-name">Murat Kaynar</span></p>
+            <p>Geliştirici</p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/studyvictory/" class="back-link">← Web Sürümüne Dön</a>
+        </div>
     </div>
 </body>
 </html>
-

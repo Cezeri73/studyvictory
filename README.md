@@ -176,7 +176,9 @@ Versiyonlama sistemi hakkında detaylar için [VERSIONING.md](VERSIONING.md) dos
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı altında lisanslanmıştır.
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
+
+**Open Source:** ✅ Bu proje açık kaynak kodludur ve MIT lisansı altında özgürce kullanılabilir, değiştirilebilir ve dağıtılabilir.
 
 ---
 

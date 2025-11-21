@@ -46,3 +46,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Keystore dosyaları (ASLA commit etmeyin!)
+*.jks
+*.keystore
+android/key.properties

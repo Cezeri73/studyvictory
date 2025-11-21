@@ -60,10 +60,16 @@
 
 ### Android APK İndirme
 
+**🌐 Web'den İndir:**
+- [APK İndir Sayfası](https://cezeri73.github.io/studyvictory/download.html) - Tek tıkla indir!
+
+**📦 GitHub Releases:**
 1. [Releases](https://github.com/cezeri73/studyvictory/releases) sayfasına gidin
 2. En son `app-release.apk` dosyasını indirin
-3. APK'yı Android cihazınıza yükleyin
-4. "Bilinmeyen kaynaklardan uygulama yükleme" iznini verin
+
+**📱 Yükleme:**
+1. APK'yı Android cihazınıza yükleyin
+2. "Bilinmeyen kaynaklardan uygulama yükleme" iznini verin
 
 ---
 

@@ -1304,61 +1304,43 @@ class _FocusScreenState extends State<FocusScreen> {
                   ),
                   const SizedBox(height: 32),
                   
-                  // Dairesel Progress Bar ve Sayaç
-                  SizedBox(
-                    width: 280,
-                    height: 280,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Progress Circle
-                        CircularProgressIndicator(
-                          value: progress.clamp(0.0, 1.0),
-                          strokeWidth: 12,
-                          backgroundColor: const Color(0xFF1E1E1E),
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            _isPomodoroMode && _isBreakTime 
-                                ? const Color(0xFF2979FF)
-                                : const Color(0xFF00E676),
+                  // Sayaç
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        displayTime,
+                        style: TextStyle(
+                          fontSize: 64,
+                          fontWeight: FontWeight.bold,
+                          color: _isPomodoroMode && _isBreakTime 
+                              ? const Color(0xFF2979FF)
+                              : const Color(0xFF00E676),
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _isPomodoroMode
+                            ? (_isBreakTime ? 'Mola Zamanı 🎉' : 'Pomodoro')
+                            : (_isRunning ? 'Çalışıyor...' : 'Hazır'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      if (_isPomodoroMode && _isRunning)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            '${(_isBreakTime ? _breakMinutes : _pomodoroMinutes)} dakika',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
                           ),
                         ),
-                        // Sayaç
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              displayTime,
-                              style: TextStyle(
-                                fontSize: 48,
-                                fontWeight: FontWeight.bold,
-                                color: _isPomodoroMode && _isBreakTime 
-                                    ? const Color(0xFF2979FF)
-                                    : const Color(0xFF00E676),
-                                letterSpacing: 2,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _isPomodoroMode
-                                  ? (_isBreakTime ? 'Mola Zamanı 🎉' : 'Pomodoro')
-                                  : (_isRunning ? 'Çalışıyor...' : 'Hazır'),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[400],
-                              ),
-                            ),
-                              if (_isPomodoroMode && _isRunning)
-                              Text(
-                                '${(_isBreakTime ? _breakMinutes : _pomodoroMinutes)} dakika',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 40),
                   

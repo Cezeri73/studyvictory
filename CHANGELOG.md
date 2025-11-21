@@ -195,6 +195,36 @@ Bu proje [Semantic Versioning](https://semver.org/lang/tr/) kullanır:
 
 ---
 
+## [1.3.1] - 2024-12-XX 🎉
+
+### ✨ Yeni Özellikler
+
+**ℹ️ Hakkında Ekranı**
+- ✅ Uygulama bilgileri (ad, versiyon, logo)
+- ✅ Geliştirici bilgisi (Cezeri73)
+- ✅ Kullanıcı istatistikleri:
+  - XP, Seviye, Streak
+  - Toplam çalışma süresi
+  - Rozet sayısı
+  - Konu, görev, rutin sayıları
+  - Toplam oturum sayısı
+- ✅ Linkler (Web, GitHub, License)
+- ✅ Pull-to-refresh desteği
+- ✅ Tema uyumlu tasarım
+
+### 🎨 UI İyileştirmeleri
+
+- Ayarlar ekranına "Hakkında" bölümü eklendi
+- İstatistik kartları ile görsel gösterim
+- Gradient arka planlar
+- Responsive grid layout
+
+### 🐛 Hata Düzeltmeleri
+
+- Ayarlar ekranında görsel iyileştirmeler
+
+---
+
 ## [Gelecek Versiyonlar] 🔮
 
 ### v1.4.0 (Planlanan)

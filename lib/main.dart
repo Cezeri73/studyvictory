@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:math' as math;
@@ -3676,6 +3677,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('Tüm verilerinizi JSON formatında dışa aktar', style: TextStyle(color: Colors.grey)),
             onTap: _exportData,
           ),
+          const SizedBox(height: 24),
+          const Text('Hakkında', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.info, color: Color(0xFF00E676)),
+            title: const Text('Uygulama Hakkında', style: TextStyle(color: Colors.white)),
+            subtitle: const Text('Versiyon, geliştirici ve istatistikler', style: TextStyle(color: Colors.grey)),
+            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutScreen()),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -5362,5 +5378,538 @@ class _TopicsScreenState extends State<TopicsScreen> {
           ),
         );
     }
+  }
+}
+
+// Hakkında Ekranı
+class AboutScreen extends StatefulWidget {
+  const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  int _xp = 0;
+  int _streak = 0;
+  double _totalHours = 0.0;
+  int _badgesCount = 0;
+  int _tasksCount = 0;
+  int _routinesCount = 0;
+  int _topicsCount = 0;
+  int _sessionsCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final totalSeconds = prefs.getInt('total_seconds') ?? 0;
+    final xp = prefs.getInt('xp') ?? 0;
+    final streak = prefs.getInt('streak') ?? 0;
+    final badges = prefs.getStringList('badges') ?? [];
+    final tasksJson = prefs.getStringList('tasks') ?? [];
+    final routinesJson = prefs.getStringList('routines') ?? [];
+    final topicsJson = prefs.getStringList('topics') ?? [];
+    final sessionsJson = prefs.getStringList('sessions') ?? [];
+    
+    setState(() {
+      _totalHours = totalSeconds / 3600.0;
+      _xp = xp;
+      _streak = streak;
+      _badgesCount = badges.length;
+      _tasksCount = tasksJson.length;
+      _routinesCount = routinesJson.length;
+      _topicsCount = topicsJson.length;
+      _sessionsCount = sessionsJson.length;
+    });
+  }
+
+  String _getLevel() {
+    if (_totalHours < 10) return 'Çırak';
+    if (_totalHours < 50) return 'Uzman';
+    if (_totalHours < 100) return 'Usta';
+    return 'Efsane';
+  }
+
+  IconData _getLevelIcon() {
+    if (_totalHours < 10) return Icons.star_outline;
+    if (_totalHours < 50) return Icons.star;
+    if (_totalHours < 100) return Icons.stars;
+    return Icons.auto_awesome;
+  }
+
+  Color _getLevelColor() {
+    if (_totalHours < 10) return Colors.grey;
+    if (_totalHours < 50) return const Color(0xFF2979FF);
+    if (_totalHours < 100) return const Color(0xFF00E676);
+    return const Color(0xFFFFD700);
+  }
+
+  String _formatHours(double hours) {
+    if (hours < 1) {
+      return '${(hours * 60).toStringAsFixed(0)} dakika';
+    } else if (hours < 24) {
+      final h = hours.floor();
+      final m = ((hours - h) * 60).floor();
+      if (m > 0) {
+        return '$h saat $m dakika';
+      }
+      return '$h saat';
+    } else {
+      final d = (hours / 24).floor();
+      final h = (hours % 24).floor();
+      if (h > 0) {
+        return '$d gün $h saat';
+      }
+      return '$d gün';
+    }
+  }
+
+  Future<void> _launchURL(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Hakkında', style: TextStyle(color: Colors.white)),
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Uygulama Logo ve İsim
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF2979FF).withOpacity(isDark ? 0.2 : 0.1),
+                      const Color(0xFF00E676).withOpacity(isDark ? 0.2 : 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF00E676).withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E676).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.school,
+                        size: 50,
+                        color: Color(0xFF00E676),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'StudyVictory',
+                      style: TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'TYT/AYT/YDS/KPSS',
+                      style: TextStyle(
+                        color: Colors.grey[600]!,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E676).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'v1.3.0',
+                        style: TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Geliştirici Bilgisi
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.grey.withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.code, color: Color(0xFF2979FF), size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Geliştirici',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Cezeri73',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.public, color: Color(0xFF00E676), size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _launchURL('https://github.com/Cezeri73/studyvictory'),
+                            child: Text(
+                              'github.com/Cezeri73/studyvictory',
+                              style: TextStyle(
+                                color: const Color(0xFF00E676),
+                                fontSize: 12,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Kullanıcı İstatistikleri
+              const Text(
+                '📊 İstatistiklerim',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // XP ve Seviye
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF00E676).withOpacity(isDark ? 0.2 : 0.1),
+                      const Color(0xFF2979FF).withOpacity(isDark ? 0.2 : 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.stars, color: Color(0xFF00E676), size: 32),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$_xp',
+                            style: const TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'XP',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 60,
+                      color: Colors.grey.withOpacity(0.3),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Icon(
+                            _getLevelIcon(),
+                            color: _getLevelColor(),
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _getLevel(),
+                            style: TextStyle(
+                              color: _getLevelColor(),
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Seviye',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 60,
+                      color: Colors.grey.withOpacity(0.3),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          const Icon(Icons.local_fire_department, color: Color(0xFFFF6B6B), size: 32),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$_streak',
+                            style: const TextStyle(
+                              color: Color(0xFFFF6B6B),
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Streak',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Detaylı İstatistikler
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.5,
+                children: [
+                  _buildStatCard(
+                    '⏱️ Toplam Çalışma',
+                    _formatHours(_totalHours),
+                    const Color(0xFF2979FF),
+                    isDark,
+                  ),
+                  _buildStatCard(
+                    '🏆 Rozetler',
+                    '$_badgesCount',
+                    const Color(0xFFFFD700),
+                    isDark,
+                  ),
+                  _buildStatCard(
+                    '📚 Konular',
+                    '$_topicsCount',
+                    const Color(0xFF00E676),
+                    isDark,
+                  ),
+                  _buildStatCard(
+                    '✅ Görevler',
+                    '$_tasksCount',
+                    const Color(0xFF2979FF),
+                    isDark,
+                  ),
+                  _buildStatCard(
+                    '🔄 Rutinler',
+                    '$_routinesCount',
+                    const Color(0xFF00BCD4),
+                    isDark,
+                  ),
+                  _buildStatCard(
+                    '📊 Oturumlar',
+                    '$_sessionsCount',
+                    const Color(0xFFFF6B6B),
+                    isDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Linkler
+              const Text(
+                '🔗 Linkler',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: const Icon(Icons.public, color: Color(0xFF00E676)),
+                title: const Text('Web Sürümü', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('https://cezeri73.github.io/studyvictory/', 
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                onTap: () => _launchURL('https://cezeri73.github.io/studyvictory/'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.code, color: Color(0xFF2979FF)),
+                title: const Text('GitHub Repository', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('github.com/Cezeri73/studyvictory', 
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                onTap: () => _launchURL('https://github.com/Cezeri73/studyvictory'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.info, color: Color(0xFF00BCD4)),
+                title: const Text('Open Source', style: TextStyle(color: Colors.white)),
+                subtitle: const Text('MIT License', 
+                  style: TextStyle(color: Colors.grey, fontSize: 12)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                onTap: () => _launchURL('https://github.com/Cezeri73/studyvictory/blob/main/LICENSE'),
+              ),
+              const SizedBox(height: 24),
+              
+              // Teşekkürler
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00E676).withOpacity(isDark ? 0.1 : 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF00E676).withOpacity(0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.favorite, color: Color(0xFFFF6B6B), size: 32),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Başarılar Dileriz!',
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'TYT/AYT/YDS/KPSS adayları için hazırlandı.',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, Color color, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
   }
 }

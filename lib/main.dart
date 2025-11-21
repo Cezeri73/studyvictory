@@ -5571,7 +5571,17 @@ class _AboutScreenState extends State<AboutScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+                    Text(
+                      'TYT/AYT/YDS/KPSS adayları için motivasyon ve çalışma takip uygulaması. Pomodoro tekniği, gamification sistemi, istatistikler ve hedef takibi ile sınavlara hazırlanırken yanınızda!',
+                      style: TextStyle(
+                        color: Colors.grey[600]!,
+                        fontSize: 13,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -5579,7 +5589,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text(
-                        'v1.3.0',
+                        'v1.3.2',
                         style: TextStyle(
                           color: Color(0xFF00E676),
                           fontSize: 14,
